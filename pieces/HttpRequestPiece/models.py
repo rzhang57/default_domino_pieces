@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from enum import Enum
+from typing import List
 
 
 class MethodTypes(str, Enum):
@@ -9,32 +10,35 @@ class MethodTypes(str, Enum):
     DELETE = 'DELETE'
 
 
-class InputModel(BaseModel):
+class RequestItem(BaseModel):
     url: str = Field(
-        description="URL to make a request to."
+        description="URL to make a request to.",
     )
     method: MethodTypes = Field(
         default=MethodTypes.GET,
-        description="HTTP method to use."
+        description="HTTP method to use for this request.",
     )
     bearer_token: str = Field(
-        default=None,
-        description="Bearer token to use for authentication."
+        default="",
+        description="Optional bearer token for authentication.",
     )
     body_json_data: str = Field(
-        default="""{
-    "key_1": "value_1",
-    "key_2": "value_2"
-}
-""",
-        description="JSON data to send in the request body.",
+        default="",
+        description="JSON body for POST/PUT requests. Leave blank for none.",
         json_schema_extra={
             'widget': "codeeditor-json",
         }
     )
 
 
+class InputModel(BaseModel):
+    requests: List[RequestItem] = Field(
+        default=[RequestItem(url="")],
+        description="List of HTTP requests to perform. Each entry has its own URL, method, bearer token, and body.",
+    )
+
+
 class OutputModel(BaseModel):
-    base64_bytes_data: str = Field(
-        description='Output data as base64 encoded string.'
+    base64_bytes_data_list: List[str] = Field(
+        description='Output data as a list of base64 encoded strings, one per request.'
     )

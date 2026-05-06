@@ -1,47 +1,49 @@
 from domino.base_piece import BasePiece
-from .models import InputModel, OutputModel
+from .models import InputModel, OutputModel, RequestItem
 import requests
 import base64
 import json
 
 
 class HttpRequestPiece(BasePiece):
-    def piece_function(self, input_data: InputModel):
+
+    def _execute(self, item: RequestItem) -> bytes:
+        headers = {}
+        if item.bearer_token:
+            headers['Authorization'] = f'Bearer {item.bearer_token}'
+
+        body_data = None
+        if item.method in ("POST", "PUT") and item.body_json_data.strip():
+            try:
+                body_data = json.loads(item.body_json_data)
+            except json.JSONDecodeError:
+                raise Exception(f"Invalid JSON body for {item.url}")
 
         try:
-            url = input_data.url
-            method = input_data.method
-
-            headers = {}
-            if input_data.bearer_token:
-                headers['Authorization'] = f'Bearer {input_data.bearer_token}'
-
-            # Prepare the request body if applicable
-            body_data = None
-            if method in ["POST", "PUT"]:
-                try:
-                    body_data = json.loads(input_data.body_json_data)
-                except json.JSONDecodeError:
-                    raise Exception("Invalid JSON data in the request body.")
-
-            # Send the HTTP request
-            if method == "GET":
-                response = requests.get(url, headers=headers)
-            elif method == "POST":
-                response = requests.post(url, headers=headers, json=body_data)
-            elif method == "PUT":
-                response = requests.put(url, headers=headers, json=body_data)
-            elif method == "DELETE":
-                response = requests.delete(url, headers=headers)
+            if item.method == "GET":
+                response = requests.get(item.url, headers=headers)
+            elif item.method == "POST":
+                response = requests.post(item.url, headers=headers, json=body_data)
+            elif item.method == "PUT":
+                response = requests.put(item.url, headers=headers, json=body_data)
+            elif item.method == "DELETE":
+                response = requests.delete(item.url, headers=headers)
             else:
-                raise Exception(f"Unsupported HTTP method: {method}")
-
-            # Check for HTTP errors
+                raise Exception(f"Unsupported HTTP method: {item.method}")
             response.raise_for_status()
-
         except requests.RequestException as e:
-            raise Exception(f"HTTP request error: {e}")
+            raise Exception(f"HTTP request error for {item.url}: {e}")
 
-        # convert content to base64
-        base64_bytes_data = base64.b64encode(response.content).decode('utf-8')
-        return OutputModel(base64_bytes_data=base64_bytes_data)
+        return response.content
+
+    def piece_function(self, input_data: InputModel):
+        base64_bytes_data_list = []
+        total = len(input_data.requests)
+        for index, item in enumerate(input_data.requests):
+            self.logger.info(f"Requesting [{index + 1}/{total}] {item.method} {item.url}")
+            content = self._execute(item)
+            base64_bytes_data_list.append(
+                base64.b64encode(content).decode('utf-8')
+            )
+
+        return OutputModel(base64_bytes_data_list=base64_bytes_data_list)

@@ -1,8 +1,8 @@
 [repository]
-REGISTRY_NAME = "tauffer-consulting"
+REGISTRY_NAME = "rzhang57"
 
 REPOSITORY_NAME = "default_domino_pieces"
 REPOSITORY_LABEL = "Default Pieces Repository"
 
-VERSION = "0.8.1"
+VERSION = "0.0.2"
 

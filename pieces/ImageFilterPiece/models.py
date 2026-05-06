@@ -1,10 +1,11 @@
 from pydantic import BaseModel, Field
 from enum import Enum
+from typing import List
 
 
 class OutputTypeType(str, Enum):
     """
-    Output type for the result text
+    Output type for the result image
     """
     file = "file"
     base64_string = "base64_string"
@@ -12,8 +13,8 @@ class OutputTypeType(str, Enum):
 
 
 class InputModel(BaseModel):
-    input_image: str = Field(
-        description='Input image. It should be either a path to a file, or a base64 encoded string.',
+    input_images: List[str] = Field(
+        description='List of input images. Each item should be either a path to a file or a base64 encoded string.',
         json_schema_extra={
             "from_upstream": "always"
         }
@@ -60,16 +61,16 @@ class InputModel(BaseModel):
     )
     output_type: OutputTypeType = Field(
         default=OutputTypeType.both,
-        description='Format of the output image. Options are: `file`, `base64_string`, `both`.',
+        description='Format of the output images. Options are: `file`, `base64_string`, `both`.',
     )
 
 
 class OutputModel(BaseModel):
-    image_base64_string: str = Field(
-        default='',
-        description='Base64 encoded string of the output image.',
+    image_base64_strings: List[str] = Field(
+        default_factory=list,
+        description='List of base64 encoded strings of the output images.',
     )
-    image_file_path: str = Field(
-        default='',
-        description='Path to the output image file.',
+    image_file_paths: List[str] = Field(
+        default_factory=list,
+        description='List of paths to the output image files.',
     )
